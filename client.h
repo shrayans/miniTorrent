@@ -35,7 +35,7 @@ std::map<char*, struct mutex_struct *,cmp_str> map_mutex;
 
 void handler_upload_command()
 {
-	cout<<"\nEnter filename to upload\n";
+	//cout<<"\nEnter filename to upload\n";
     char *file_name = new char [256];
     cin>>file_name;
 
@@ -113,7 +113,12 @@ void piece_selection(char *file_name)
 
 	for(int i=0;i<v->size();i++)
    	{
-   		cout<<"\n"<<v->at(i)->IP<<" " <<v->at(i)->PORT<<" " <<v->at(i)->start_point<<" "<<v->at(i)->interval<<" "<<v->at(i)->bit_vector;
+   		cout<<"\n"<<v->at(i)->IP<<" "
+   		 <<v->at(i)->PORT<<" "
+   		  <<v->at(i)->start_point<<" "
+   		  <<v->at(i)->interval<<" "
+   		  <<v->at(i)->file_size<<" "
+   		  <<v->at(i)->bit_vector;
    	}
 
    	int no_bits_one[v->size()]={0};
@@ -122,6 +127,7 @@ void piece_selection(char *file_name)
    	// int no_of_chunks=( (v->at(0)->file_size-1)/CHUNK_SIZE)+1;
    	int no_of_chunks = strlen(v->at(0)->bit_vector)-1;
    	cout<<"\nno_of_chunks "<<no_of_chunks;
+
 
    	for (int i = 0; i < v->size(); ++i)
    	{
@@ -277,7 +283,7 @@ void * download_file(void * argv)
 	FILE *fp = fopen ( create_file_name  , "wb+" );
 
 	char Buffer [ BUFF_SIZE]; 
-	int file_size;
+	int file_size=0;
 	sleep(1);
 	recv(sockfd, &file_size, sizeof(file_size), 0);
 	send(sockfd,&ack,sizeof(ack),0);
@@ -290,10 +296,16 @@ void * download_file(void * argv)
 	int temp=client->start_point;
 	cout<<"\nno of chunks "<<number_of_chunks;
 
-	recv(sockfd,&bit_vector,sizeof(bit_vector),0);
+	int to_make_zero =recv(sockfd,&bit_vector,sizeof(bit_vector),0);
 	send(sockfd,&ack,sizeof(ack),0);
 	cout<<"\n\tbitvector-"<<bit_vector<<"\n";
-	sleep(3);
+	
+	for (int i = to_make_zero-1; i < number_of_chunks; ++i)
+	{
+		bit_vector[i]='0';
+	}
+
+	// sleep(3);
 
 	client->bit_vector=bit_vector;
 
@@ -329,11 +341,6 @@ void * download_file(void * argv)
 	// 	cout<<bit_vector[i];
 	// }
 	
-	
-
-	//piece_selection
-
-
 	send(sockfd,bit_vector,number_of_chunks,0);
 
 
@@ -390,7 +397,7 @@ void * download_file(void * argv)
 				}
 			}
 			fwrite(big_Buffer,sizeof(char),no_of_bytes_recieved,fp);
-			sleep(4);
+			// sleep(4);
 
 			auto itr=map_file_details.find(file_name);
 			struct struct_file_details * f = itr->second;
@@ -404,10 +411,11 @@ void * download_file(void * argv)
 	fclose ( fp );
 	printf("\nThread ended" );
 
-	free(client);
+	// free(client);
 
 	close( sockfd);
 
+	pthread_exit(NULL);
 }
 
 
@@ -458,7 +466,7 @@ void create_null_file(struct client_addr * client)
 
 void handler_download_command()
 {
-		cout<<"\nEnter filename to download\n";
+		//cout<<"\nEnter filename to download\n";
 	    char *file_name = new char [256];
 	    cin>>file_name;
 
@@ -493,7 +501,7 @@ void handler_download_command()
 	    cout<<"\nack recieved "<<ack;
 
 
-	    std::vector<struct client_addr *> v;
+	    std::vector<struct client_addr *> *v=new vector<struct client_addr *>();
 
 	    for(int i=0;i<n;i++)
 	    {
@@ -528,15 +536,15 @@ void handler_download_command()
 		    client1->interval=n;
 		    client1->file_size=file_size;
 	
-			v.push_back(client1);   
+			v->push_back(client1);   
 			cout<<"\n"<<client1->IP<<" " <<client1->PORT<<" " <<client1->start_point<<" "<<client1->interval<<" "<<client1->file_size;	
 	    }
 
-	   	for(int i=0;i<v.size();i++)
+	   	for(int i=0;i<v->size();i++)
 	   	{
-	   		cout<<"\n"<<v[i]->IP<<" " <<v[i]->PORT<<" " <<v[i]->start_point<<" "<<v[i]->interval;
+	   		cout<<"\n"<<v->at(i)->IP<<" " <<v->at(i)->PORT<<" " <<v->at(i)->start_point<<" "<<v->at(i)->interval;
 	   	}
-	   	v[0]->first_client=true;
+	   	v->at(0)->first_client=true;
 
 	   	struct mutex_struct * _mutex_struct=new mutex_struct();
 	   	_mutex_struct->no_of_client=n;
@@ -545,16 +553,16 @@ void handler_download_command()
 
 
 	   	map_mutex.insert({file_name,_mutex_struct});
-	   	map_downloading.insert({file_name,&v});
+	   	map_downloading.insert({file_name,v});
 
-	    create_null_file(v[0]);
+	    create_null_file(v->at(0));
 
 		pthread_t tid[n];
 
 		for(int i=0;i<n;i++)
 		{
 			cout<<"\n flow will be passed to thread";
-			if( pthread_create(&tid[i],NULL,&download_file,v[i]) !=0 ){
+			if( pthread_create(&tid[i],NULL,&download_file,v->at(i)) !=0 ){
 				printf("Failed to create server thread\n");
 				//pthread_exit(1);		
 			}
@@ -564,14 +572,14 @@ void handler_download_command()
 
 		for(int i=0;i<n;i++)
 		{
-			pthread_join(tid[i],NULL);
-			cout<<"\n thread Ended "<<i;
+			pthread_detach(tid[i]);
+			// cout<<"\n thread Ended "<<i;
 		}	
 
-		auto it =map_mutex.find(file_name);
-		map_mutex.erase(it);
+		// auto it =map_mutex.find(file_name);
+		// map_mutex.erase(it);
 
-	    free(_mutex_struct);
+	 //    free(_mutex_struct);
 		// cout<<"\n All went well \n";		
 		close(sockfd);
 }
@@ -580,7 +588,7 @@ void handler_download_command()
 void handler_create_user()
 {
 
-	cout<<"\nEnter uid and password\n";
+	//cout<<"\nEnter uid and password\n";
     // char * uid = new char [256];
 	char * password = new char[256];
 	cin>>uid;
@@ -621,7 +629,7 @@ void handler_create_user()
 
 void handle_login()
 {
-	cout<<"\nEnter uid and password to login\n";
+	//cout<<"\nEnter uid and password to login\n";
     // char * uid = new char [256];
 	char * password = new char[256];
 	cin>>uid;
@@ -726,11 +734,11 @@ void * client(void * argv)
 			cout<<"\nPlease login";continue;
 		}
 
-		if(s=="u")
+		if(s=="upload_file")
 		{
 			handler_upload_command();
 		}
-		if(s=="d")
+		if(s=="download_file")
 		{
 			handler_download_command();
 		}

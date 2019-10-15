@@ -13,6 +13,9 @@
 #define BUFF_SIZE 2048
 using namespace std;
 
+char traker_Ip[20];
+int tracker_port;
+
 struct cmp_str
 {
    bool operator()(char const *a, char const *b) const
@@ -470,14 +473,14 @@ void * server(void * argv)
 	
 	pthread_t tid;
 
-	cout<<"\nEnter port for process\n";
-	cin>>PORT;
+	// cout<<"\nEnter port for process\n";
+	// cin>>PORT;
 
 	struct sockaddr_in   server_addr,client_addr;
 
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons( PORT );
-	server_addr.sin_addr.s_addr=inet_addr("127.0.0.1");
+	server_addr.sin_port = htons( tracker_port);
+	server_addr.sin_addr.s_addr=inet_addr(traker_Ip);
 
 
 	cout<<"\nport no - "<<ntohs(server_addr.sin_port)<<"\n";
@@ -514,9 +517,28 @@ void * server(void * argv)
 	close( server_fd);	
 }
 
-int main()
+int main(int argc, char **argv)
 {
 	pthread_t tid_client,tid_server;
+
+	if(argc<2)
+	{
+		cout<<"\nDetails missing";
+		return 0;
+	}
+
+
+	FILE *fp = fopen ( argv[1]  , "rb+" );	
+
+	char buffer[256];
+	memset(buffer,'\0',256);
+	fread( buffer,sizeof(char),256,fp);
+
+	char* token = strtok(buffer, "\n"); 
+	strcpy(traker_Ip,token);
+	token=strtok(NULL,"\n");
+	tracker_port=atoi(token);
+
 
 
 	if( pthread_create(&tid_server,NULL,&server,NULL) !=0 ){

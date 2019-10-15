@@ -12,6 +12,8 @@ char traker_Ip[20];
 int tracker_port;
 
 int PORT;
+char SERVER_IP[20];
+
 bool mutex_server_start=false;
 char * uid = new char [256];
 #define BUFF_SIZE 2048
@@ -38,12 +40,34 @@ std::map<char * , struct struct_file_details *,cmp_str> map_file_details;
 #include "client.h"
 #include "server.h"
 
-int main()
+int main(int argc, char **argv)
 {
+
+	if(argc<4)
+	{
+		cout<<"\nDetails missing";
+		return 0;
+	}
+	strcpy(SERVER_IP,argv[1]);
+	PORT = atoi (argv[2]);
+
+	FILE *fp = fopen ( argv[3]  , "rb+" );	
+
+	char buffer[256];
+	memset(buffer,'\0',256);
+	fread( buffer,sizeof(char),256,fp);
+
+	char* token = strtok(buffer, "\n"); 
+	strcpy(traker_Ip,token);
+	token=strtok(NULL,"\n");
+	tracker_port=atoi(token);
+
+	cout<<SERVER_IP<<" "<<PORT<<" "<<traker_Ip<<" "<<tracker_port;
+
 	pthread_t tid_client,tid_server;
 
-	cout<<"\nEnter tracker IP and PORT";
-	cin>>traker_Ip>>tracker_port;
+	// cout<<"\nEnter tracker IP and PORT";
+	// cin>>traker_Ip>>tracker_port;
 
 	strcpy(uid,"");
 

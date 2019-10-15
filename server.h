@@ -134,14 +134,14 @@ void * server(void * argv)
 	
 	pthread_t tid;
 
-	cout<<"Enter port for process";
-	cin>>PORT;
+	// cout<<"Enter port for process";
+	// cin>>PORT;
 
 	struct sockaddr_in   server_addr,client_addr;
 
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons( PORT );
-	server_addr.sin_addr.s_addr=inet_addr("127.0.0.1");
+	server_addr.sin_addr.s_addr=inet_addr(SERVER_IP);
 
 
 	cout<<"\nServer port no - "<<ntohs(server_addr.sin_port)<<"\n";
@@ -150,7 +150,7 @@ void * server(void * argv)
 
 	if(bind (server_fd  , (struct sockaddr *)&server_addr , sizeof ( server_addr ) ) !=0)
 	{
-		cout<<"\nError in Binding Socket\n";
+		seout;cout<<"\nError in Binding Socket\n";
 		exit(1);
 	}
 	mutex_server_start=true;
